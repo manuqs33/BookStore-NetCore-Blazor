@@ -17,91 +17,142 @@ namespace BookAPI.Controllers
     {
         private readonly BookStoreDbContext _context;
         private readonly IMapper mapper;
+        private readonly ILogger<AuthorsController> logger;
 
-        public AuthorsController(BookStoreDbContext context, IMapper mapper)
+        public AuthorsController(BookStoreDbContext context, IMapper mapper, ILogger<AuthorsController> logger)
         {
             _context = context;
             this.mapper = mapper;
+            this.logger = logger;
         }
 
         // GET: api/Authors
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Author>>> GetAuthors()
+        public async Task<ActionResult<IEnumerable<GetFullAuthorDto>>> GetAuthors()
         {
-            return await _context.Authors.ToListAsync();
+            try
+            {
+                var dbAuthors = await _context.Authors.ToListAsync();
+                var authors = mapper.Map<List<GetFullAuthorDto>>(dbAuthors);
+                return authors;
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, $"Error at {nameof(GetAuthors)}");
+                return StatusCode(500, "An error ocurred. Please try again");
+            }
+
         }
 
         // GET: api/Authors/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<Author>> GetAuthor(int id)
+        public async Task<ActionResult<GetFullAuthorDto>> GetAuthor(int id)
         {
-            var author = await _context.Authors.FindAsync(id);
-
-            if (author == null)
+            try
             {
-                return NotFound();
+                var dbAuthor = await _context.Authors.FindAsync(id);
+                if (dbAuthor == null)
+                {
+                    return NotFound();
+                }
+                var author = mapper.Map<GetFullAuthorDto>(dbAuthor);
+                return Ok(author);
             }
-
-            return Ok(author);
+            catch (Exception ex)
+            {
+                logger.LogError(ex, $"Error at {nameof(GetAuthor)}");
+                return StatusCode(500, "An error ocurred. Please try again");
+            }
         }
 
         // PUT: api/Authors/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutAuthor(int id, Author author)
+        public async Task<IActionResult> PutAuthor(int id, UpdateAuthorDto authorDto)
         {
-            if (id != author.Id)
-            {
-                return BadRequest();
-            }
-
-            _context.Entry(author).State = EntityState.Modified;
-
             try
             {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!AuthorExists(id))
+                if (id != authorDto.Id)
+                {
+                    return BadRequest();
+                }
+
+                var dbAuthor = await _context.Authors.FindAsync(id);
+
+                if (dbAuthor == null)
                 {
                     return NotFound();
                 }
-                else
-                {
-                    throw;
-                }
-            }
 
-            return NoContent();
+                mapper.Map(authorDto, dbAuthor);
+                _context.Entry(dbAuthor).State = EntityState.Modified;
+
+                try
+                {
+                    await _context.SaveChangesAsync();
+                }
+                catch (DbUpdateConcurrencyException)
+                {
+                    if (!AuthorExists(id))
+                    {
+                        return NotFound();
+                    }
+                    else
+                    {
+                        throw;
+                    }
+                }
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, $"Error at {nameof(PutAuthor)}");
+                return StatusCode(500, "An error ocurred. Please try again");
+            }
         }
 
         // POST: api/Authors
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<Author>> PostAuthor(CreateAuthorDto authorDto)
+        public async Task<ActionResult<GetFullAuthorDto>> PostAuthor(CreateAuthorDto authorDto)
         {
-            var author = mapper.Map<Author>(authorDto);
-            _context.Authors.Add(author);
-            await _context.SaveChangesAsync();
+            try
+            {
+                var author = mapper.Map<Author>(authorDto);
+                _context.Authors.Add(author);
+                await _context.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(GetAuthor), new { id = author.Id }, author);
+                return CreatedAtAction(nameof(GetAuthor), new { id = author.Id }, author);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, $"Error at {nameof(PostAuthor)}");
+                return StatusCode(500, "An error ocurred. Please try again");
+            }
         }
 
         // DELETE: api/Authors/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteAuthor(int id)
         {
-            var author = await _context.Authors.FindAsync(id);
-            if (author == null)
+            try
             {
-                return NotFound();
+                var author = await _context.Authors.FindAsync(id);
+                if (author == null)
+                {
+                    return NotFound();
+                }
+
+                _context.Authors.Remove(author);
+                await _context.SaveChangesAsync();
+                return NoContent();
             }
-
-            _context.Authors.Remove(author);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
+            catch (Exception ex)
+            {
+                logger.LogError(ex, $"Error at {nameof(PostAuthor)}");
+                return StatusCode(500, "An error ocurred. Please try again");
+            }
         }
 
         private bool AuthorExists(int id)

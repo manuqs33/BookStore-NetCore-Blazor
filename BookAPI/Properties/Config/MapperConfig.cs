@@ -9,6 +9,8 @@ namespace BookAPI.Properties.Config
         public MapperConfig()
         {
             CreateMap<CreateAuthorDto, Author>().ReverseMap();
+            CreateMap<GetFullAuthorDto, Author>().ReverseMap();
+            CreateMap<UpdateAuthorDto, Author>().ReverseMap();
         }
     }
 }

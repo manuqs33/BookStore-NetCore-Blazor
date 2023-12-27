@@ -2,8 +2,10 @@
 
 namespace BookAPI.Models.Author
 {
-    public class CreateAuthorDto
+    public class UpdateAuthorDto
     {
+        public int Id { get; set; }
+
         [Required]
         [StringLength(50)]
         public required string FirstName { get; set; }
@@ -14,5 +16,6 @@ namespace BookAPI.Models.Author
 
         [StringLength(250)]
         public string? Bio { get; set; }
+
     }
 }
